@@ -1,39 +1,80 @@
 #!/usr/bin/env python
 import xml.etree.ElementTree as xt
 import sys
+zone_dict={}
+oldheader, newheader = 'Old Zone Name', 'New Zone Name'
 
 error_log=''
-infile=input('Enter the name of the XML file you want to work from in the same directory as this script\nExample "file.xml" in current directory: ')
+infile=input('Enter the name of the XML file you want to work from in the same directory as this script\nExample "infile.xml" in current directory: ')
+    if not bool(infile):
+        print(f"You didn't enter an input file name. We will use 'infile.xml' as the input file.")
 outfile=input('Enter the name for the output file eg: "outfile.xml": ')
+    if not bool(outfile):
+        print(f"You didn't enter an output file name. We will use 'outfile.xml' as the output file.")
+zonefile=input('Enter the file name for zone conversions: "zonefile.xml": ')
+    if not bool(zonefile):
+        print(f"You didn't enter an input zone file name. You can enter the zones manually.")
+
+# Open the input file and convert to XML tree
 try:
     f=open(infile, 'r')
     my_data=f.read()
     my_xml=xt.fromstring(my_data)
     print(f'XML successfully file loaded as {my_xml}')
+    f.close()
 except Exception as e:
     print(f'File open failed with error:\n{e}')
     error_log = error_log + str(e)
     sys.exit()
 
-# get the list of old to new zone mappings
-zone_dict={}
-print('Now we need to know the old zone mappings to new\nYou can paste in multiple entries but you need to enter the old and new zone consecutively as follows')
-print('Example:\noldzone\nnewzone\nveryoldzone\nnewzone\n')
-print('When done, just add a blank line to finish')
-while True:
-    oldzone=input('Enter the old zone name: ')
-    if not bool(oldzone):
-        break
-    newzone=input('Enter the new zone name: ')
-    if not bool(newzone):
-        break
-    zone_dict[oldzone]=newzone
-print('checking zone mappings:')
-for oldzone in zone_dict:
-    print(f'{oldzone:>10} - {zone_dict[oldzone]:<30}')
-command=input('If there are wrong - press q to finish and start again')
-if str.lower(command)=='q':
-    sys.exit()
+
+#Check if zone conversion file was added and load it
+if bool(zonefile):
+    try:
+        f=open(zonefile, 'r')
+        zonedata=f.read()
+        zonelist=zonedata.split('\n')
+        print(f'Zones imported from file: {zonefile}')
+        f.close()
+    except Exception as e:
+        print(f'File open of {zonefile} failed with error:\n{e}')
+        error_log = error_log + str(e)
+        sys.exit()
+    x = 0
+    for zonepair in zonelist:
+        try:
+            if len(zonepair) >= 3:
+                oldzone, newzone = zonepair.split(' ')
+                x+=1
+                zone_dict[oldzone]=newzone
+        except Exception as e:
+            print(f'Zone file mapping failed for "{zonepair}" at line {x} with error:\n{e}')
+            sys.exit()
+    print('\nSummary of old to new zone mappings')
+    print(f'{oldzone:>30} - {zone_dict[oldzone]:<}')
+    print(f'{oldheader:>30}: converts to :{newheader:<}')
+    # get the list of old to new zone mappings
+
+# Get the zones via CLI if not provided in a file
+if not bool(zonefile):
+    print('Now we need to know the old zone mappings to new\nYou can paste in multiple entries but you need to enter the old and new zone consecutively as follows')
+    print('Example:\noldzone\nnewzone\nveryoldzone\nnewzone\n')
+    print('When done, just add a blank line to finish')
+    while True:
+        oldzone=input('Enter the old zone name: ')
+        if not bool(oldzone):
+            break
+        newzone=input('Enter the new zone name: ')
+        if not bool(newzone):
+            break
+        zone_dict[oldzone]=newzone
+    print('checking zone mappings:')
+    print(f'{oldheader:>30}: converts to :{newheader:<}')
+    for oldzone in zone_dict:
+        print(f'{oldzone:>10} - {zone_dict[oldzone]:<30}')
+    command=input('If there are wrong - press q to finish and start again')
+    if str.lower(command)=='q':
+        sys.exit()
 
 
 
