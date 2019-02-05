@@ -137,14 +137,16 @@ for dg in devicegroups:
                             print(f'Unable to map to-zone for rule {rule_name} in {rule_set_name} - {dg_name}')
                         #print(f'Device Group: {dg_name} - Rule: {rule_name:>20} - From Zone: {fromzone[0].text} - To Zone: {tozone[0].text}')
                         #print(f'To Zone: {tozone[0].text:>20}')
-                        if fromzone[0].text in zone_dict:
-                            print(f'Found entry fromzone {fromzone[0].text} that needs updating to {zone_dict[fromzone[0].text]} in {rule_name}:{dg_name} ')
-                            fromzone[0].text=zone_dict[fromzone[0].text]
-                            update=True
-                        if tozone[0].text in zone_dict:
-                            print(f'Found entry tozone {tozone[0].text} that needs updating to {zone_dict[tozone[0].text]} in {rule_name}:{dg_name} ')
-                            tozone[0].text=zone_dict[tozone[0].text]
-                            update=True
+                        for index, item in enumerate(fromzone):
+                            if fromzone[index].text in zone_dict:
+                                print(f'Found entry fromzone {fromzone[index].text} that needs updating to {zone_dict[fromzone[index].text]} in {rule_name}:{dg_name} ')
+                                fromzone[index].text=zone_dict[fromzone[index].text]
+                                update=True
+                        for index, item in enumerate(tozone):
+                            if tozone[index].text in zone_dict:
+                                print(f'Found entry tozone {tozone[index].text} that needs updating to {zone_dict[tozone[index].text]} in {rule_name}:{dg_name} ')
+                                tozone[index].text=zone_dict[tozone[index].text]
+                                update=True
                         if update==True:
                             rule_count+=1
                     rule_name='None'
