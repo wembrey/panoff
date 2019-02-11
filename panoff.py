@@ -223,7 +223,7 @@ def mainmenu():
             command=int(input('Select a number:'))
             if command==1:
                 zonefile=get_zonefile()
-                zone_dict{}=get_zones(zonefile)
+                zone_dict=get_zones(zonefile)
                 update_zones(devicegroups, zone_dict):
             if command==2:
                 pass
