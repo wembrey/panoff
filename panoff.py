@@ -41,6 +41,7 @@ def get_zonefile():
 
 def get_xml():
     # Open the input file and convert to XML tree
+    global my_xml
     global error_log
     try:
         f=open(infile, 'r')
