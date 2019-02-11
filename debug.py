@@ -14,9 +14,30 @@ my_xml=''
 devicegroups=''
 outfile=''
 infile=''
+welcome="""\n\n\n
+  _____               ____   __  __
+ |  __ \             / __ \ / _|/ _|
+ | |__) |_ _ _ __   | |  | | |_| |_
+ |  ___/ _` | '_  \ | |  | |  _|  _|
+ | |  | (_| | | | | | |__| | | | |
+ |_|   \__,_|_| |_|  \____/|_| |_|
+
+Welcome to PanOff - an offline XML config editor for items not supported in Pandevice\n\n"""
+colors = {
+        'blue': '\033[94m',
+        'pink': '\033[95m',
+        'green': '\033[92m',
+        'red': '\033[91m',
+        'yellow': '\033[93m',
+        }
+
+def highlight(string, color):
+    if not color in colors: return string
+    return colors[color] + string + '\033[0m'
 
 # Clear the screen
 os.system('clear')
+print(highlight(welcome, 'blue'))
 
 def get_infile():
     global infile
@@ -260,9 +281,9 @@ def main():
     global infile
     global my_xml
     global devicegroups
-    infile=get_infile()
-    my_xml=get_xml()
-    devicegroups=get_dgs()
+    get_infile()
+    get_xml()
+    get_dgs()
     mainmenu()
 
 
