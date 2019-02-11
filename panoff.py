@@ -101,7 +101,7 @@ def get_zones(zonefile):
         command=input('If there are wrong - press q to finish and start again')
         if str.lower(command)=='q':
             sys.exit()
-        return zone_dict{}
+        return zone_dict
 
 
 # my_xml - top level file element <config>
