@@ -79,7 +79,7 @@ def get_zones(zonefile):
         command=input('\nIf these are wrong - press q to finish and start again or press [Enter] to continue: ')
         if str.lower(command)=='q':
             sys.exit()
-        return zone_dict{}
+        return zone_dict
 
     # Get the zones via CLI if not provided in a file
     if not bool(zonefile):
