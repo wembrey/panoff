@@ -224,7 +224,7 @@ def mainmenu():
             if command==1:
                 zonefile=get_zonefile()
                 zone_dict=get_zones(zonefile)
-                update_zones(devicegroups, zone_dict):
+                update_zones(devicegroups, zone_dict)
             if command==2:
                 pass
             if command==3:
