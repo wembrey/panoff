@@ -10,32 +10,36 @@ error_log=''
 dg_count=0
 rule_count=0
 zonefile=''
+my_xml=''
+devicegroups=''
+outfile=''
+infile=''
 
 # Clear the screen
 os.system('clear')
 
 def get_infile():
+    global infile
     infile=input('Enter the name of the XML file you want to work from in the same directory as this script\nExample "infile.xml" in current directory: ')
     if not bool(infile):
         infile='infile.xml'
         print(f"\nYou didn't enter an input file name. We will use 'infile.xml' as the input file.")
-    return infile
 
 def get_outfile():
+    global outfile
     outfile=input('\nEnter the name for the output file eg: "outfile.xml": ')
     if not bool(outfile):
         outfile='outfile.xml'
         print(f"\nYou didn't enter an output file name. We will use 'outfile.xml' as the output file.")
-    return outfile
 
 def get_zonefile():
+    global zonefile
     zonefile=input('\nEnter the file name for zone conversions: "zones.txt": ')
     if not bool(zonefile):
         zonefile='zones.txt'
         print(f"\nYou didn't enter a zone file name. We will use 'zones.txt' as the zone file.")
-    return zonefile
 
-def get_xml(infile, error_log):
+def get_xml():
     # Open the input file and convert to XML tree
     global error_log
     try:
@@ -50,7 +54,7 @@ def get_xml(infile, error_log):
         error_log = error_log + str(e)
         sys.exit()
 
-def get_zones(zonefile):
+def get_zones():
     #Check if zone conversion file was added and load it
     if bool(zonefile):
         try:
@@ -114,17 +118,19 @@ def get_zones(zonefile):
 #fromzone = rule.find('from')
 # rulebase = devicegroups[25].find('pre-rulebase')
 
-def get_dgs(my_xml):
+def get_dgs():
     # Read the device groups from the XML tree
+    global devicegroups
     try:
         devicegroups = my_xml[1][0][3][:]
-        return devicegroups
     except Exception as e:
         print(f'Get device groups failed with error:\n')
         error_log = error_log + '\n' + str(e)
         sys.exit()
 
-def update_zones(devicegroups, zone_dict):
+def update_zones():
+    global devicegroups
+    global zone_dict
     # Update zone names based on entries on supplied zone file
     global devicegroups # Use devicegroups as a global so that the function can change the XML document
     for dg in devicegroups:
@@ -184,7 +190,8 @@ def update_zones(devicegroups, zone_dict):
         # end of devicegroup
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
 
-def write_xml_out(my_xml, outfile):
+def write_xml_out():
+    get_outfile()
     command=input('Write data to xml file? (y/n)')
     if str.lower(command)!='y':
         print(error_log)
@@ -222,23 +229,23 @@ def mainmenu():
         try:
             command=int(input('Select a number:'))
             if command==1:
-                zonefile=get_zonefile()
-                zone_dict=get_zones(zonefile)
-                update_zones(devicegroups, zone_dict)
+                get_zonefile()
+                get_zones()
+                update_zones()
             if command==2:
                 pass
             if command==3:
                 pass
             if command==4:
-                tagmenu(pano)
+                pass
             if command==5:
-                policymenu(pano)
+                pass
             if command==6:
                 pass
             if command==7:
                 pass
             if command==8:
-                write_xml_out(my_xml, outfile)
+                write_xml_out()
             if command==9:
                 print('You chose to quit')
                 quit()
@@ -249,10 +256,13 @@ def mainmenu():
 
 
 def main():
-    get_infile()
-    get_xml(infile, error_log)
-    get_dgs(my_xml)
-    mainmenu(devicegroups)
+    global infile
+    global my_xml
+    global devicegroups
+    infile=get_infile()
+    my_xml=get_xml()
+    devicegroups=get_dgs()
+    mainmenu()
 
 
 if __name__ == "__main__":
