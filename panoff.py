@@ -271,6 +271,10 @@ def update_lfp():
                             print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
                         try:
                             log_end = rule.find('log-end')
+                            if not bool(log_end.tag):
+                                print(f'No Log-end settings detected for rule {rule_name}')
+                                log_end=xt.SubElement(rule, 'log-end')
+                                log_end.text='yes'
                         except:
                             print(f'Unable to map log-at-end for rule {rule_name} in {rule_set_name} - {dg_name}')
                         # update Lof profile on rule
@@ -278,21 +282,16 @@ def update_lfp():
                             if log_setting.text!=target_lfp:
                                 update=True
                                 log_setting.text=target_lfp
-                            if log_end!='yes':
-                                update=True
-                                log_end='yes'
-                            if update==True:
-                                rule_count+=1
+                                print(f'Updated LFP for rule {rule_name}')
                         except Exception as e:
                             #print(f'Op failed with error {e}')
                             pass
-                        # End of block
-                    #print(f'Finished rule {rule_name}')
-                    rule_name='None'
-                    # end of rule
-                print(f'Finished Rule Set {rule_set_name}')
-                rule_set_name='None'
-                # End of rule_set
+                        rule_name='None'
+                        # End of rule block
+                        #print(f'Finished rule {rule_name}')
+                    print(f'Finished Rule Set {rule_set_name}')
+                    rule_set_name='None'
+                    # end of rule set
             except Exception as e:
                 print(f'Operation failed with error: {e}')
                 print(f'Unable to find rulebase in {dg_name}\n')
