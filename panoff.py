@@ -241,7 +241,7 @@ def update_lfp():
         rulebase = dg.find('pre-rulebase')
         if rulebase==None:
             print(f'Skipping {dg_name} as no rulebase found')
-            continue
+            return
         else:
             try:
                 for rule_set in rulebase:
