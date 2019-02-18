@@ -289,9 +289,9 @@ def update_lfp():
                 rule_set_name='None'
                 # End of rule_set
             except Exception as e:
+                print(f'Operation failed with error: {e}')
                 print(f'Unable to find rulebase in {dg_name}\n')
                 error_log = error_log + '\nFailed to find rulebase for' + dg_name + str(e)
-                return
     except Exception as e:
         print(f'Failed operation for rule "{rule_name}" for rule set "{rule_set.tag}" in DeviceGroup "{dg_name}" with error\n{e}')
         error_log = error_log + '\n' + 'Failed operation for rule' + rule_name + ' in rule set ' + rule_set_name + ' in DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
