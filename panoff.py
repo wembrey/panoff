@@ -77,6 +77,7 @@ def get_xml():
         sys.exit()
 
 def get_zones():
+    global error_log
     #Check if zone conversion file was added and load it
     if bool(zonefile):
         try:
@@ -141,6 +142,7 @@ def get_zones():
 # rulebase = devicegroups[25].find('pre-rulebase')
 
 def get_dgs():
+    global error_log
     # Read the device groups from the XML tree
     global devicegroups
     try:
@@ -151,6 +153,7 @@ def get_dgs():
         sys.exit()
 
 def update_zones():
+    global error_log
     global devicegroups
     global zone_dict
     # Update zone names based on entries on supplied zone file
@@ -213,6 +216,7 @@ def update_zones():
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
 
 def update_lfp():
+    global error_log
     print('This modue updates the Log Forwarding Profile for all rules in a device group')
     global devicegroups # Use devicegroups as a global so that the function can change the XML document
     #
@@ -292,6 +296,7 @@ def update_lfp():
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
 
 def write_xml_out():
+    global error_log
     get_outfile()
     command=input('Write data to xml file? (y/n)')
     if str.lower(command)!='y':
