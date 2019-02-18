@@ -285,7 +285,7 @@ def update_lfp():
                     # end of rule
                 rule_set_name='None'
                 # End of rule_set
-            except:
+            except Exception as e:
                 print(f'Unable to find rulebase in {dg_name}\n')
                 error_log = error_log + '\nFailed to find rulebase for' + dg_name + str(e)
                 return
