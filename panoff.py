@@ -325,7 +325,7 @@ def write_xml_out():
 
 def mainmenu():
     while True:
-        os.system('clear')
+        #os.system('clear')
         print('Choose a function to run')
         print('1. Update zone names')
         print('2. Update Log Forwarding Profile')
