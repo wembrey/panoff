@@ -285,6 +285,7 @@ def update_lfp():
                                 rule_count+=1
                         except Exception as e:
                             #print(f'Op failed with error {e}')
+                            pass
                         # End of block
                     #print(f'Finished rule {rule_name}')
                     rule_name='None'
