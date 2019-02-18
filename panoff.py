@@ -360,9 +360,9 @@ def main():
     global infile
     global my_xml
     global devicegroups
-    infile=get_infile()
-    my_xml=get_xml()
-    devicegroups=get_dgs()
+    get_infile()
+    get_xml()
+    get_dgs()
     mainmenu()
 
 
