@@ -266,7 +266,7 @@ def update_lfp():
                         # Get log specific parameters
                         try:
                             log_setting = rule.find('log-setting')
-                            print(f'Log setting is {log_setting.text}')
+                            #print(f'Log setting is {log_setting.text}')
                         except:
                             print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
                         try:
@@ -284,9 +284,8 @@ def update_lfp():
                             if update==True:
                                 rule_count+=1
                         except Exception as e:
-                            print(f'Op failed with error {e}')
+                            #print(f'Op failed with error {e}')
                         # End of block
-                    print(f'Finished rule {rule_name}')
                     rule_name='None'
                     # end of rule
                 print(f'Finished Rule Set {rule_set_name}')
