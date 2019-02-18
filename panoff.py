@@ -217,6 +217,7 @@ def update_zones():
 
 def update_lfp():
     dg_count =0
+    rule_count=0
     global error_log
     print('This modue updates the Log Forwarding Profile for all rules in a device group')
     global devicegroups # Use devicegroups as a global so that the function can change the XML document
