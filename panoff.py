@@ -282,8 +282,10 @@ def update_lfp():
                         if update==True:
                             rule_count+=1
                         # End of block
+                    print(f'Finished rule {rule_name}')
                     rule_name='None'
                     # end of rule
+                print(f'Finished Rule Set {rule_set_name}')
                 rule_set_name='None'
                 # End of rule_set
             except Exception as e:
