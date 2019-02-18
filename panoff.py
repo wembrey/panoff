@@ -259,6 +259,7 @@ def update_lfp():
                     except Exception as e:
                         print(f'Rule set parse failed')
                     rule_set_name=rule_set.tag
+                    print(f'Working on {rule_set_name}')
                     for rule in rule_set[0]:
                         update=False
                         rule_name = rule.items()[0][1]
