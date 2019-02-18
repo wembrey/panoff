@@ -212,6 +212,85 @@ def update_zones():
         # end of devicegroup
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
 
+def update_lfp():
+    print('This modue updates the Log Forwarding Profile for all rules in a device group')
+    global devicegroups # Use devicegroups as a global so that the function can change the XML document
+    #
+    # select the DeviceGroup to work on
+    for index, dg in enumerate(devicegroups):
+        print(f'{index:>3} - {dg.items()[0][1]}')
+    print(f'Select Device Group to update Log Forwarding Profile')
+    target_num=int(input('Enter Device Group Number : '))
+    dg=devicegroups[target_num]
+    print(f'Opening {dg.items()[0][1]}')
+    #
+    # Get the Log Forwarding Profile
+    log_settings=dg.find('log-settings')
+    for index, log_profile in enumerate(log_settings[0]):
+        profile_name=log_profile.items()[0][1]
+        print(f'{index:>2} - {profile_name}')
+    print(f'Select Log Forwarding Profile to update rules')
+    target_lfp=log_settings[0][int(input('Enter LFP Number : '))].items()[0][1]
+    print(f'Using "{target_lfp}" as the Log forwarding Profile')
+    #
+    # Work on the DeviceGroup
+    dg_name=dg.items()[0][1]
+    print(f'Starting rule check on device group {dg_name}')
+    # Get the rulebase for the DeviceGroup
+    try:
+        rulebase = dg.find('pre-rulebase')
+        if rulebase==None:
+            print(f'Skipping {dg_name} as no rulebase found')
+            continue
+        else:
+            try:
+                for rule_set in rulebase:
+                    try:
+                        if not bool(rule_set[0]):
+                            print(f'Skipping rule set {rule_set.tag} in {dg_name} as there are no entries\n')
+                            continue
+                    except Exception as e:
+                        print(f'Rule set parse failed')
+                    rule_set_name=rule_set.tag
+                    for rule in rule_set[0]:
+                        update=False
+                        rule_name = rule.items()[0][1]
+                        # Get log specific parameters
+                        try:
+                            log_setting = rule.find('log-setting')
+                        except:
+                            print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
+                        try:
+                            log_end = rule.find('log-end')
+                        except:
+                            print(f'Unable to map log-at-end for rule {rule_name} in {rule_set_name} - {dg_name}')
+                        # update Lof profile on rule
+                        if log_setting.text!=target_lfp:
+                            update=True
+                            log_setting.text=target_lfp
+                        if log_end!='yes':
+                            update=True
+                            log_end='yes'
+                        if update==True:
+                            rule_count+=1
+                        # End of block
+                    rule_name='None'
+                    # end of rule
+                rule_set_name='None'
+                # End of rule_set
+            except:
+                print(f'Unable to find rulebase in {dg_name}\n')
+                error_log = error_log + '\nFailed to find rulebase for' + dg_name + str(e)
+                continue
+    except Exception as e:
+        print(f'Failed operation for rule "{rule_name}" for rule set "{rule_set.tag}" in DeviceGroup "{dg_name}" with error\n{e}')
+        error_log = error_log + '\n' + 'Failed operation for rule' + rule_name + ' in rule set ' + rule_set_name + ' in DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
+    print(f'Device Group {dg_name} finished\n')
+    dg_count +=1
+    dg_name='None'
+    # end of devicegroup
+    print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+
 def write_xml_out():
     get_outfile()
     command=input('Write data to xml file? (y/n)')
@@ -240,7 +319,7 @@ def mainmenu():
         os.system('clear')
         print('Choose a function to run')
         print('1. Update zone names')
-        print('2. ')
+        print('2. Update Log Forwarding Profile')
         print('3. ')
         print('4. ')
         print('5. ')
@@ -255,7 +334,7 @@ def mainmenu():
                 get_zones()
                 update_zones()
             if command==2:
-                pass
+                update_lfp()
             if command==3:
                 pass
             if command==4:
@@ -281,12 +360,11 @@ def main():
     global infile
     global my_xml
     global devicegroups
-    get_infile()
-    get_xml()
-    get_dgs()
+    infile=get_infile()
+    my_xml=get_xml()
+    devicegroups=get_dgs()
     mainmenu()
 
 
 if __name__ == "__main__":
-    # main()
-    pass
+    #main()

@@ -38,8 +38,6 @@ def highlight(string, color):
 # Clear the screen
 os.system('clear')
 print(highlight(welcome, 'blue'))
-# Clear the screen
-os.system('clear')
 
 def get_infile():
     global infile
