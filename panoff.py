@@ -214,6 +214,7 @@ def update_zones():
         dg_name='None'
         # end of devicegroup
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+    input('Press [Enter] to continue')
 
 def update_lfp():
     dg_count =0
@@ -296,6 +297,7 @@ def update_lfp():
     dg_name='None'
     # end of devicegroup
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+    input('Press [Enter] to continue')
 
 def write_xml_out():
     global error_log
