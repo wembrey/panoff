@@ -276,7 +276,7 @@ def update_lfp():
                                 log_end=xt.SubElement(rule, 'log-end')
                                 log_end.text='yes'
                         except:
-                            print(f'Unable to map log-at-end for rule {rule_name} in {rule_set_name} - {dg_name}')
+                            pass
                         # update Lof profile on rule
                         try:
                             if log_setting.text!=target_lfp:
