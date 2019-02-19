@@ -156,6 +156,9 @@ def update_zones():
     global error_log
     global devicegroups
     global zone_dict
+    error_log=''
+    dg_count=0
+    rule_count=0
     # Update zone names based on entries on supplied zone file
     global devicegroups # Use devicegroups as a global so that the function can change the XML document
     for dg in devicegroups:
