@@ -1,2 +1,7 @@
 *.xml
 *.txt
+!*.py
+!.gitignore
+!LICENSE
+!README.md
+*.*
