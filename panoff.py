@@ -65,7 +65,7 @@ def get_xml():
     global my_xml
     global error_log
     try:
-        f=open(infile, 'r')
+        f=open(infile, 'r', encoding='utf8')
         my_data=f.read()
         my_xml=xt.fromstring(my_data)
         print(f'\nXML successfully file loaded as {my_xml}')
@@ -236,12 +236,17 @@ def update_lfp():
     #
     # Get the Log Forwarding Profile
     log_settings=dg.find('log-settings')
-    for index, log_profile in enumerate(log_settings[0]):
-        profile_name=log_profile.items()[0][1]
-        print(f'{index:>2} - {profile_name}')
-    print(f'Select Log Forwarding Profile to update rules')
-    target_lfp=log_settings[0][int(input('Enter LFP Number : '))].items()[0][1]
-    print(f'Using "{target_lfp}" as the Log forwarding Profile')
+    try:
+        for index, log_profile in enumerate(log_settings[0]):
+            profile_name=log_profile.items()[0][1]
+            print(f'{index:>2} - {profile_name}')
+        print(f'Select Log Forwarding Profile to update rules')
+        target_lfp=log_settings[0][int(input('Enter LFP Number : '))].items()[0][1]
+        print(f'Using "{target_lfp}" as the Log forwarding Profile')
+    except:
+        print(f'Unable to find Log Forwarding Profile in {dg.items()[0][1]}')
+        input('[Enter] to go back to main menu')
+        return
     #
     # Work on the DeviceGroup
     dg_name=dg.items()[0][1]
@@ -255,14 +260,17 @@ def update_lfp():
             print(f'Rulebase found at {rulebase}')
             try:
                 for rule_set in rulebase:
+                    if not rule_set.tag=='security':
+                        print(f'Skipping rulebase {rule_set.tag}')
+                        continue
+                    print('Sec rule set found')
                     try:
                         if not bool(rule_set[0]):
                             print(f'Skipping rule set {rule_set.tag} in {dg_name} as there are no entries\n')
-                            continue
                     except Exception as e:
                         print(f'Rule set parse failed')
                     rule_set_name=rule_set.tag
-                    print(f'Working on {rule_set_name}')
+                    print(f'Working on rule-set - {rule_set_name}')
                     for rule in rule_set[0]:
                         update=False
                         rule_name = rule.items()[0][1]
@@ -274,12 +282,12 @@ def update_lfp():
                             print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
                         try:
                             log_end = rule.find('log-end')
-                            if not bool(log_end.tag):
+                            if not log_end:
                                 print(f'No Log-end settings detected for rule {rule_name}')
                                 log_end=xt.SubElement(rule, 'log-end')
                                 log_end.text='yes'
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f'Log setting failed for {rule_name} with error : {e}')
                         # update Lof profile on rule
                         try:
                             if log_setting.text!=target_lfp:
@@ -287,14 +295,16 @@ def update_lfp():
                                 log_setting.text=target_lfp
                                 print(f'Updated LFP for rule {rule_name}')
                         except Exception as e:
-                            #print(f'Op failed with error {e}')
-                            pass
+                            print(f'Log settings text update failed with error {e}')
                         rule_name='None'
                         # End of rule block
                         #print(f'Finished rule {rule_name}')
+                        if update==True:
+                            rule_count+=1
                     print(f'Finished Rule Set {rule_set_name}')
                     rule_set_name='None'
                     # end of rule set
+                    input('[Enter] to continue')
             except Exception as e:
                 print(f'Operation failed with error: {e}')
                 print(f'Unable to find rulebase in {dg_name}\n')
