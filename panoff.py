@@ -276,18 +276,19 @@ def update_lfp():
                         rule_name = rule.items()[0][1]
                         # Get log specific parameters
                         try:
-                            log_setting = rule.find('log-setting')
-                            #print(f'Log setting is {log_setting.text}')
-                        except:
-                            print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
-                        try:
                             log_end = rule.find('log-end')
-                            if not log_end:
-                                print(f'No Log-end settings detected for rule {rule_name}')
-                                log_end=xt.SubElement(rule, 'log-end')
+                            log_setting = rule.find('log-setting')
+                            try:
                                 log_end.text='yes'
+                                print(f'log end updated to {log_end.text}')
+                            except Exception as e:
+                                print(f'Log setting failed for {rule_name} with error : {e}')
+                            if not log_end:
+                                le=xt.SubElement(rule, 'log-end')
+                                le.text='yes'
                         except Exception as e:
-                            print(f'Log setting failed for {rule_name} with error : {e}')
+                            print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
+                            print(  )
                         # update Lof profile on rule
                         try:
                             if log_setting.text!=target_lfp:
@@ -295,7 +296,7 @@ def update_lfp():
                                 log_setting.text=target_lfp
                                 print(f'Updated LFP for rule {rule_name}')
                         except Exception as e:
-                            print(f'Log settings text update failed with error {e}')
+                            print(f'Log settings text update failed for {rule_name} with error {e}')
                         rule_name='None'
                         # End of rule block
                         #print(f'Finished rule {rule_name}')
@@ -325,11 +326,11 @@ def write_xml_out():
     command=input('Write data to xml file? (y/n)')
     if str.lower(command)!='y':
         print(error_log)
-        pritn('\nExiting now')
+        print('\nExiting now')
         sys.exit()
     try:
         print('Converting XML back to string for file writing')
-        data_out=xt.tostring(my_xml, encoding='utf8', method='xml')
+        data_out=xt.tostring(my_xml, encoding='utf-8', method='xml')
         print(f'Opening new file named "{outfile}"')
         f=open(outfile, 'wb+')
         print(f'Writing data to file')
