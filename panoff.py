@@ -31,6 +31,21 @@ colors = {
         'yellow': '\033[93m',
         }
 
+def indent(elem, level=0):
+    i = "\n" + level*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
 def highlight(string, color):
     if not color in colors: return string
     return colors[color] + string + '\033[0m'
@@ -236,17 +251,12 @@ def update_lfp():
     #
     # Get the Log Forwarding Profile
     log_settings=dg.find('log-settings')
-    try:
-        for index, log_profile in enumerate(log_settings[0]):
-            profile_name=log_profile.items()[0][1]
-            print(f'{index:>2} - {profile_name}')
-        print(f'Select Log Forwarding Profile to update rules')
-        target_lfp=log_settings[0][int(input('Enter LFP Number : '))].items()[0][1]
-        print(f'Using "{target_lfp}" as the Log forwarding Profile')
-    except:
-        print(f'Unable to find Log Forwarding Profile in {dg.items()[0][1]}')
-        input('[Enter] to go back to main menu')
-        return
+    for index, log_profile in enumerate(log_settings[0]):
+        profile_name=log_profile.items()[0][1]
+        print(f'{index:>2} - {profile_name}')
+    print(f'Select Log Forwarding Profile to update rules')
+    target_lfp=log_settings[0][int(input('Enter LFP Number : '))].items()[0][1]
+    print(f'Using "{target_lfp}" as the Log forwarding Profile')
     #
     # Work on the DeviceGroup
     dg_name=dg.items()[0][1]
@@ -260,52 +270,56 @@ def update_lfp():
             print(f'Rulebase found at {rulebase}')
             try:
                 for rule_set in rulebase:
-                    if not rule_set.tag=='security':
-                        print(f'Skipping rulebase {rule_set.tag}')
-                        continue
-                    print('Sec rule set found')
                     try:
                         if not bool(rule_set[0]):
                             print(f'Skipping rule set {rule_set.tag} in {dg_name} as there are no entries\n')
+                            continue
                     except Exception as e:
                         print(f'Rule set parse failed')
                     rule_set_name=rule_set.tag
-                    print(f'Working on rule-set - {rule_set_name}')
-                    for rule in rule_set[0]:
-                        update=False
-                        rule_name = rule.items()[0][1]
-                        # Get log specific parameters
-                        try:
-                            log_end = rule.find('log-end')
-                            log_setting = rule.find('log-setting')
+                    print(f'Working on {rule_set_name}')
+                    if rule_set_name=='security':
+                        for rule in rule_set[0]:
+                            update=False
+                            rule_name = rule.items()[0][1]
+                            # Get log specific parameters
                             try:
-                                log_end.text='yes'
-                                print(f'log end updated to {log_end.text}')
-                            except Exception as e:
-                                print(f'Log setting failed for {rule_name} with error : {e}')
-                            if not log_end:
-                                le=xt.SubElement(rule, 'log-end')
-                                le.text='yes'
-                        except Exception as e:
-                            print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
-                            print(  )
-                        # update Lof profile on rule
-                        try:
-                            if log_setting.text!=target_lfp:
-                                update=True
-                                log_setting.text=target_lfp
-                                print(f'Updated LFP for rule {rule_name}')
-                        except Exception as e:
-                            print(f'Log settings text update failed for {rule_name} with error {e}')
-                        rule_name='None'
-                        # End of rule block
+                                log_setting = rule.find('log-setting')
+                                if not log_setting:
+                                    ls=xt.SubElement(rule, 'log-setting')
+                                    ls.text=target_lfp
+                                    ls.tail='   '
+                                    update=True
+                                else:
+                                    if log_setting.text!=target_lfp:
+                                        update=True
+                                        log_setting.text='wembrey-updated-log-setting'
+                            except:
+                                print(f'Unable to set/map log-setting for rule {rule_name}')
+                            try:
+                                log_end = rule.find('log-end')
+                                try:
+                                    print(f'Log end for {rule_name} currently set to - {log_end.text}')
+                                    log_end.text='yes'
+                                except Exception as e:
+                                    print(f'{e} - {rule_name} - Adding log-end element')
+                                    le=xt.SubElement(rule, 'log-end')
+                                    le.text='yes'
+                                    le.tail='   '
+                                    update=True
+                            except:
+                                print(f'Unable to map log-at-end for rule {rule_name} in {rule_set_name} - {dg_name}')
+                            if update==True:
+                                rule_count+=1
+                            # End of block
                         #print(f'Finished rule {rule_name}')
-                        if update==True:
-                            rule_count+=1
+                        rule_name='None'
+                        # end of rule
+                    else:
+                        print(f'Skipping {rule_set_name} as non-security rule-set')
                     print(f'Finished Rule Set {rule_set_name}')
                     rule_set_name='None'
-                    # end of rule set
-                    input('[Enter] to continue')
+                    # End of rule_set
             except Exception as e:
                 print(f'Operation failed with error: {e}')
                 print(f'Unable to find rulebase in {dg_name}\n')
@@ -317,8 +331,9 @@ def update_lfp():
     dg_count +=1
     dg_name='None'
     # end of devicegroup
-    print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+    print(f'Finished operation on {rule_count} updates\n')
     input('Press [Enter] to continue')
+
 
 def write_xml_out():
     global error_log
