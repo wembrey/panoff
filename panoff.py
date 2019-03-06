@@ -412,7 +412,7 @@ def check_address_alldg():
                     #print(f'Address value {valuepair[1]}')
                     if address==valuepair[1]:
                         print(f'Match found for address - {address}')
-                        address_compare = address_compare + address + '\n'
+                        address_compare = address_compare + valuepair[0] + ' ' + address + '\n'
         except Exception as e:
             print(f'Failed address compare with error\n{e}')
             error_log = error_log + '\n' + 'Failed address compare for DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
