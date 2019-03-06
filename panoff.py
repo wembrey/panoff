@@ -5,14 +5,17 @@ import os
 
 # set variables
 zone_dict={}
+address_list=[]
 oldheader, newheader = 'Old Zone Name', 'New Zone Name'
 error_log=''
 dg_count=0
 rule_count=0
 zonefile=''
+addressfile=''
 my_xml=''
 devicegroups=''
 outfile=''
+address_compare='Comparison of address objects in device groups against supplied list\n\n'
 infile=''
 welcome="""\n\n\n
   _____               ____   __  __
@@ -68,28 +71,19 @@ def get_outfile():
         outfile='outfile.xml'
         print(f"\nYou didn't enter an output file name. We will use 'outfile.xml' as the output file.")
 
+def get_address_outfile():
+    global address_outfile
+    address_outfile=input('\nEnter the name for the output file eg: "address_out.txt": ')
+    if not bool(address_outfile):
+        address_outfile='address_out.txt'
+        print(f"\nYou didn't enter an output file name. We will use 'address_out.txt' as the output file.")
+
 def get_zonefile():
     global zonefile
     zonefile=input('\nEnter the file name for zone conversions: "zones.txt": ')
     if not bool(zonefile):
         zonefile='zones.txt'
         print(f"\nYou didn't enter a zone file name. We will use 'zones.txt' as the zone file.")
-
-def get_xml():
-    # Open the input file and convert to XML tree
-    global my_xml
-    global error_log
-    try:
-        f=open(infile, 'r', encoding='utf8')
-        my_data=f.read()
-        my_xml=xt.fromstring(my_data)
-        print(f'\nXML successfully file loaded as {my_xml}')
-        f.close()
-        return my_xml
-    except Exception as e:
-        print(f'\nFile open failed with error:\n{e}')
-        error_log = error_log + str(e)
-        sys.exit()
 
 def get_zones():
     global error_log
@@ -122,6 +116,48 @@ def get_zones():
         if str.lower(command)=='q':
             sys.exit()
         return zone_dict
+
+def get_addressfile():
+    global addressfile
+    addressfile=input('\nEnter the file name for address reference check: "address.txt": ')
+    if not bool(addressfile):
+        addressfile='address.txt'
+        print(f"\nYou didn't enter an address file name. We will use 'address.txt' as the reference file.")
+
+def get_address_set():
+    global error_log
+    global address_list
+    #Check if zone conversion file was added and load it
+    if bool(addressfile):
+        try:
+            f=open(addressfile, 'r')
+            address_data=f.read()
+            address_list=address_data.split('\n')
+            print(f'\nAddress Objects imported from file: {addressfile}')
+            f.close()
+        except Exception as e:
+            print(f'\nFile open of {addressfile} failed with error:\n{e}')
+            error_log = error_log + str(e)
+            sys.exit()
+        print('The following address objects have been imported\n')
+        print(address_list)
+        return address_list
+
+def get_xml():
+    # Open the input file and convert to XML tree
+    global my_xml
+    global error_log
+    try:
+        f=open(infile, 'r', encoding='utf8')
+        my_data=f.read()
+        my_xml=xt.fromstring(my_data)
+        print(f'\nXML successfully file loaded as {my_xml}')
+        f.close()
+        return my_xml
+    except Exception as e:
+        print(f'\nFile open failed with error:\n{e}')
+        error_log = error_log + str(e)
+        sys.exit()
 
     # Get the zones via CLI if not provided in a file
     if not bool(zonefile):
@@ -334,6 +370,62 @@ def update_lfp():
     print(f'Finished operation on {rule_count} updates\n')
     input('Press [Enter] to continue')
 
+def check_address_alldg():
+    print('Address check against DG objects')
+    global address_compare
+    global error_log
+    global devicegroups
+    global address_list
+    error_log=''
+    dg_count=0
+    global devicegroups # Use devicegroups as a global so that the function can change the XML document
+    print(f'Address_list contains {len(address_list)} items')
+    for dg in devicegroups:
+        dg_address=[]
+        dg_name=dg.items()[0][1]
+        try:
+            address=dg.find('address')
+            if not bool(address[0]):
+                print(f'Skipping {dg_name} as there are no entries\n')
+                continue
+        except Exception as e:
+            print(f'Skipping {dg_name} as there are no entries\n')
+            continue
+        print(f'Starting device group {dg_name}')
+        address_compare = address_compare + '\n' + dg_name + '\n'
+        try:
+            address = dg.find('address')
+            #print(f'{len(address)} objects found in {dg_name}')
+            for item in address:
+                valuepair=[item.items()[0][1], item[0].text]
+                #print(valuepair)
+                dg_address.append(valuepair)
+            #print(dg_address)
+        except Exception as e:
+            print(f'Failed address check with error\n{e}')
+            error_log = error_log + '\n' + 'Failed address check for DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
+        #Compare values against supplied reference
+        try:
+            for address in address_list:
+                #print(f'Checking {address}')
+                for valuepair in dg_address:
+                    #print(f'Address value {valuepair[1]}')
+                    if address==valuepair[1]:
+                        print(f'Match found for address - {address}')
+                        address_compare = address_compare + address + '\n'
+        except Exception as e:
+            print(f'Failed address compare with error\n{e}')
+            error_log = error_log + '\n' + 'Failed address compare for DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
+        print(f'Device Group {dg_name} finished\n')
+        dg_count +=1
+        dg_name='None'
+        # end of devicegroup
+        # Manual step through for debugging
+        #input('Enter to continue')
+    print(f'Finished operation on {dg_count} device groups\n')
+    print(address_compare)
+    write_address_compare_out()
+    input('Press [Enter] to continue')
 
 def write_xml_out():
     global error_log
@@ -359,13 +451,35 @@ def write_xml_out():
         print('\nExiting now')
         sys.exit()
 
+def write_address_compare_out():
+    global error_log
+    get_address_outfile()
+    command=input('Write data to txt file? (y/n)')
+    if str.lower(command)!='y':
+        print(error_log)
+        print('\nExiting now')
+        sys.exit()
+    try:
+        print(f'Opening new file named "{address_outfile}"')
+        f=open(address_outfile, 'w')
+        print(f'Writing data to file')
+        f.write(address_compare)
+        print('Closing')
+        f.close()
+    except Exception as e:
+        print(f'Operation failed with error:\n{e}')
+        error_log = error_log + '\n' + str(e)
+        print(error_log)
+        print('\nExiting now')
+        sys.exit()
+
 def mainmenu():
     while True:
         #os.system('clear')
         print('Choose a function to run')
         print('1. Update zone names')
         print('2. Update Log Forwarding Profile')
-        print('3. ')
+        print('3. Check address list')
         print('4. ')
         print('5. ')
         print('6. ')
@@ -381,7 +495,9 @@ def mainmenu():
             if command==2:
                 update_lfp()
             if command==3:
-                pass
+                get_addressfile()
+                get_address_set()
+                check_address_alldg()
             if command==4:
                 pass
             if command==5:
