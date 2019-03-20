@@ -5,14 +5,17 @@ import os
 
 # set variables
 zone_dict={}
+address_list=[]
 oldheader, newheader = 'Old Zone Name', 'New Zone Name'
 error_log=''
 dg_count=0
 rule_count=0
 zonefile=''
+addressfile=''
 my_xml=''
 devicegroups=''
 outfile=''
+address_compare='Comparison of address objects in device groups against supplied list\n\n'
 infile=''
 welcome="""\n\n\n
   _____               ____   __  __
@@ -30,6 +33,21 @@ colors = {
         'red': '\033[91m',
         'yellow': '\033[93m',
         }
+
+def indent(elem, level=0):
+    i = "\n" + level*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
 
 def highlight(string, color):
     if not color in colors: return string
@@ -53,6 +71,13 @@ def get_outfile():
         outfile='outfile.xml'
         print(f"\nYou didn't enter an output file name. We will use 'outfile.xml' as the output file.")
 
+def get_address_outfile():
+    global address_outfile
+    address_outfile=input('\nEnter the name for the output file eg: "address_out.txt": ')
+    if not bool(address_outfile):
+        address_outfile='address_out.txt'
+        print(f"\nYou didn't enter an output file name. We will use 'address_out.txt' as the output file.")
+
 def get_zonefile():
     global zonefile
     zonefile=input('\nEnter the file name for zone conversions: "zones.txt": ')
@@ -60,23 +85,8 @@ def get_zonefile():
         zonefile='zones.txt'
         print(f"\nYou didn't enter a zone file name. We will use 'zones.txt' as the zone file.")
 
-def get_xml():
-    # Open the input file and convert to XML tree
-    global my_xml
-    global error_log
-    try:
-        f=open(infile, 'r')
-        my_data=f.read()
-        my_xml=xt.fromstring(my_data)
-        print(f'\nXML successfully file loaded as {my_xml}')
-        f.close()
-        return my_xml
-    except Exception as e:
-        print(f'\nFile open failed with error:\n{e}')
-        error_log = error_log + str(e)
-        sys.exit()
-
 def get_zones():
+    global error_log
     #Check if zone conversion file was added and load it
     if bool(zonefile):
         try:
@@ -106,6 +116,48 @@ def get_zones():
         if str.lower(command)=='q':
             sys.exit()
         return zone_dict
+
+def get_addressfile():
+    global addressfile
+    addressfile=input('\nEnter the file name for address reference check: "address.txt": ')
+    if not bool(addressfile):
+        addressfile='address.txt'
+        print(f"\nYou didn't enter an address file name. We will use 'address.txt' as the reference file.")
+
+def get_address_set():
+    global error_log
+    global address_list
+    #Check if zone conversion file was added and load it
+    if bool(addressfile):
+        try:
+            f=open(addressfile, 'r')
+            address_data=f.read()
+            address_list=address_data.split('\n')
+            print(f'\nAddress Objects imported from file: {addressfile}')
+            f.close()
+        except Exception as e:
+            print(f'\nFile open of {addressfile} failed with error:\n{e}')
+            error_log = error_log + str(e)
+            sys.exit()
+        print('The following address objects have been imported\n')
+        print(address_list)
+        return address_list
+
+def get_xml():
+    # Open the input file and convert to XML tree
+    global my_xml
+    global error_log
+    try:
+        f=open(infile, 'r', encoding='utf8')
+        my_data=f.read()
+        my_xml=xt.fromstring(my_data)
+        print(f'\nXML successfully file loaded as {my_xml}')
+        f.close()
+        return my_xml
+    except Exception as e:
+        print(f'\nFile open failed with error:\n{e}')
+        error_log = error_log + str(e)
+        sys.exit()
 
     # Get the zones via CLI if not provided in a file
     if not bool(zonefile):
@@ -141,6 +193,7 @@ def get_zones():
 # rulebase = devicegroups[25].find('pre-rulebase')
 
 def get_dgs():
+    global error_log
     # Read the device groups from the XML tree
     global devicegroups
     try:
@@ -151,8 +204,12 @@ def get_dgs():
         sys.exit()
 
 def update_zones():
+    global error_log
     global devicegroups
     global zone_dict
+    error_log=''
+    dg_count=0
+    rule_count=0
     # Update zone names based on entries on supplied zone file
     global devicegroups # Use devicegroups as a global so that the function can change the XML document
     for dg in devicegroups:
@@ -211,8 +268,12 @@ def update_zones():
         dg_name='None'
         # end of devicegroup
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+    input('Press [Enter] to continue')
 
 def update_lfp():
+    dg_count =0
+    rule_count=0
+    global error_log
     print('This modue updates the Log Forwarding Profile for all rules in a device group')
     global devicegroups # Use devicegroups as a global so that the function can change the XML document
     #
@@ -241,8 +302,8 @@ def update_lfp():
         rulebase = dg.find('pre-rulebase')
         if rulebase==None:
             print(f'Skipping {dg_name} as no rulebase found')
-            return
         else:
+            print(f'Rulebase found at {rulebase}')
             try:
                 for rule_set in rulebase:
                     try:
@@ -252,36 +313,53 @@ def update_lfp():
                     except Exception as e:
                         print(f'Rule set parse failed')
                     rule_set_name=rule_set.tag
-                    for rule in rule_set[0]:
-                        update=False
-                        rule_name = rule.items()[0][1]
-                        # Get log specific parameters
-                        try:
-                            log_setting = rule.find('log-setting')
-                        except:
-                            print(f'Unable to map log-setting for rule {rule_name} in {rule_set_name} - {dg_name}')
-                        try:
-                            log_end = rule.find('log-end')
-                        except:
-                            print(f'Unable to map log-at-end for rule {rule_name} in {rule_set_name} - {dg_name}')
-                        # update Lof profile on rule
-                        if log_setting.text!=target_lfp:
-                            update=True
-                            log_setting.text=target_lfp
-                        if log_end!='yes':
-                            update=True
-                            log_end='yes'
-                        if update==True:
-                            rule_count+=1
-                        # End of block
-                    rule_name='None'
-                    # end of rule
-                rule_set_name='None'
-                # End of rule_set
-            except:
+                    print(f'Working on {rule_set_name}')
+                    if rule_set_name=='security':
+                        for rule in rule_set[0]:
+                            update=False
+                            rule_name = rule.items()[0][1]
+                            # Get log specific parameters
+                            try:
+                                log_setting = rule.find('log-setting')
+                                if not log_setting:
+                                    ls=xt.SubElement(rule, 'log-setting')
+                                    ls.text=target_lfp
+                                    ls.tail='   '
+                                    update=True
+                                else:
+                                    if log_setting.text!=target_lfp:
+                                        update=True
+                                        log_setting.text='wembrey-updated-log-setting'
+                            except:
+                                print(f'Unable to set/map log-setting for rule {rule_name}')
+                            try:
+                                log_end = rule.find('log-end')
+                                try:
+                                    print(f'Log end for {rule_name} currently set to - {log_end.text}')
+                                    log_end.text='yes'
+                                except Exception as e:
+                                    print(f'{e} - {rule_name} - Adding log-end element')
+                                    le=xt.SubElement(rule, 'log-end')
+                                    le.text='yes'
+                                    le.tail='   '
+                                    update=True
+                            except:
+                                print(f'Unable to map log-at-end for rule {rule_name} in {rule_set_name} - {dg_name}')
+                            if update==True:
+                                rule_count+=1
+                            # End of block
+                        #print(f'Finished rule {rule_name}')
+                        rule_name='None'
+                        # end of rule
+                    else:
+                        print(f'Skipping {rule_set_name} as non-security rule-set')
+                    print(f'Finished Rule Set {rule_set_name}')
+                    rule_set_name='None'
+                    # End of rule_set
+            except Exception as e:
+                print(f'Operation failed with error: {e}')
                 print(f'Unable to find rulebase in {dg_name}\n')
                 error_log = error_log + '\nFailed to find rulebase for' + dg_name + str(e)
-                continue
     except Exception as e:
         print(f'Failed operation for rule "{rule_name}" for rule set "{rule_set.tag}" in DeviceGroup "{dg_name}" with error\n{e}')
         error_log = error_log + '\n' + 'Failed operation for rule' + rule_name + ' in rule set ' + rule_set_name + ' in DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
@@ -289,18 +367,77 @@ def update_lfp():
     dg_count +=1
     dg_name='None'
     # end of devicegroup
-    print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+    print(f'Finished operation on {rule_count} updates\n')
+    input('Press [Enter] to continue')
+
+def check_address_alldg():
+    print('Address check against DG objects')
+    global address_compare
+    global error_log
+    global devicegroups
+    global address_list
+    error_log=''
+    dg_count=0
+    global devicegroups # Use devicegroups as a global so that the function can change the XML document
+    print(f'Address_list contains {len(address_list)} items')
+    for dg in devicegroups:
+        dg_address=[]
+        dg_name=dg.items()[0][1]
+        try:
+            address=dg.find('address')
+            if not bool(address[0]):
+                print(f'Skipping {dg_name} as there are no entries\n')
+                continue
+        except Exception as e:
+            print(f'Skipping {dg_name} as there are no entries\n')
+            continue
+        print(f'Starting device group {dg_name}')
+        address_compare = address_compare + '\n' + dg_name + '\n'
+        try:
+            address = dg.find('address')
+            #print(f'{len(address)} objects found in {dg_name}')
+            for item in address:
+                valuepair=[item.items()[0][1], item[0].text]
+                #print(valuepair)
+                dg_address.append(valuepair)
+            #print(dg_address)
+        except Exception as e:
+            print(f'Failed address check with error\n{e}')
+            error_log = error_log + '\n' + 'Failed address check for DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
+        #Compare values against supplied reference
+        try:
+            for address in address_list:
+                #print(f'Checking {address}')
+                for valuepair in dg_address:
+                    #print(f'Address value {valuepair[1]}')
+                    if address==valuepair[1]:
+                        print(f'Match found for address - {address}')
+                        address_compare = address_compare + valuepair[0] + ' ' + address + '\n'
+        except Exception as e:
+            print(f'Failed address compare with error\n{e}')
+            error_log = error_log + '\n' + 'Failed address compare for DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
+        print(f'Device Group {dg_name} finished\n')
+        dg_count +=1
+        dg_name='None'
+        # end of devicegroup
+        # Manual step through for debugging
+        #input('Enter to continue')
+    print(f'Finished operation on {dg_count} device groups\n')
+    print(address_compare)
+    write_address_compare_out()
+    input('Press [Enter] to continue')
 
 def write_xml_out():
+    global error_log
     get_outfile()
     command=input('Write data to xml file? (y/n)')
     if str.lower(command)!='y':
         print(error_log)
-        pritn('\nExiting now')
+        print('\nExiting now')
         sys.exit()
     try:
         print('Converting XML back to string for file writing')
-        data_out=xt.tostring(my_xml, encoding='utf8', method='xml')
+        data_out=xt.tostring(my_xml, encoding='utf-8', method='xml')
         print(f'Opening new file named "{outfile}"')
         f=open(outfile, 'wb+')
         print(f'Writing data to file')
@@ -314,13 +451,35 @@ def write_xml_out():
         print('\nExiting now')
         sys.exit()
 
+def write_address_compare_out():
+    global error_log
+    get_address_outfile()
+    command=input('Write data to txt file? (y/n)')
+    if str.lower(command)!='y':
+        print(error_log)
+        print('\nExiting now')
+        sys.exit()
+    try:
+        print(f'Opening new file named "{address_outfile}"')
+        f=open(address_outfile, 'w')
+        print(f'Writing data to file')
+        f.write(address_compare)
+        print('Closing')
+        f.close()
+    except Exception as e:
+        print(f'Operation failed with error:\n{e}')
+        error_log = error_log + '\n' + str(e)
+        print(error_log)
+        print('\nExiting now')
+        sys.exit()
+
 def mainmenu():
     while True:
-        os.system('clear')
+        #os.system('clear')
         print('Choose a function to run')
         print('1. Update zone names')
         print('2. Update Log Forwarding Profile')
-        print('3. ')
+        print('3. Check address list')
         print('4. ')
         print('5. ')
         print('6. ')
@@ -336,7 +495,9 @@ def mainmenu():
             if command==2:
                 update_lfp()
             if command==3:
-                pass
+                get_addressfile()
+                get_address_set()
+                check_address_alldg()
             if command==4:
                 pass
             if command==5:
@@ -360,9 +521,9 @@ def main():
     global infile
     global my_xml
     global devicegroups
-    infile=get_infile()
-    my_xml=get_xml()
-    devicegroups=get_dgs()
+    get_infile()
+    get_xml()
+    get_dgs()
     mainmenu()
 
 
