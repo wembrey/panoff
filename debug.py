@@ -9,11 +9,13 @@ address_list=[]
 oldheader, newheader = 'Old Zone Name', 'New Zone Name'
 error_log=''
 dg_count=0
+tp_count=0
 rule_count=0
 zonefile=''
 addressfile=''
 my_xml=''
 devicegroups=''
+templates=''
 outfile=''
 address_compare='Comparison of address objects in device groups against supplied list\n\n'
 infile=''
@@ -203,15 +205,25 @@ def get_dgs():
         error_log = error_log + '\n' + str(e)
         sys.exit()
 
-def update_zones():
+def get_templates():
     global error_log
-    global devicegroups
+    # Read the device groups from the XML tree
+    global templates
+    try:
+        templates = my_xml[1][0][1][:]
+    except Exception as e:
+        print(f'Get templates failed with error:\n')
+        error_log = error_log + '\n' + str(e)
+        sys.exit()
+
+def update_dg_zones():
+    global error_log
+    global devicegroups # Use devicegroups as a global so that the function can change the XML documen
     global zone_dict
     error_log=''
     dg_count=0
     rule_count=0
     # Update zone names based on entries on supplied zone file
-    global devicegroups # Use devicegroups as a global so that the function can change the XML document
     for dg in devicegroups:
         dg_name=dg.items()[0][1]
         print(f'Starting device group {dg_name}')
@@ -268,6 +280,45 @@ def update_zones():
         dg_name='None'
         # end of devicegroup
     print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+    input('Press [Enter] to continue')
+
+def update_template_zones():
+    global error_log
+    global templates # Use devicegroups as a global so that the function can change the XML document
+    global zone_dict
+    error_log=''
+    tp_count=0
+    # Update zone names based on entries on supplied zone file
+    for template in templates:
+        tp_name=template.items()[0][1]
+        #print(f'Starting template {tp_name}')
+        try:
+            zones = template[1][0][0][0][0].find('zone')
+            if zones==None:
+                #print(f'Skipping {tp_name} as no zones found')
+                continue
+            elif len(zones)==0:
+                #print(f'Skipping {tp_name} as no zones found')
+                continue
+            else:
+                print(f'\nTemplate {tp_name}')
+                try:
+                    for zone in zones:
+                        zone_name=zone.items()[0][1]
+                        print(f'Zone - {zone_name}')
+                        # end of zone
+                    # End of template
+                except Exception as e:
+                    print(e)
+                    continue
+        except Exception as e:
+            print(f'Failed operation for template "{tp_name}" with error\n{e}')
+            error_log = error_log + '\n' + 'Failed operation for template' + tp_name + str(e)
+        #print(f'Template {tp_name} finished\n')
+        tp_count +=1
+        tp_name='None'
+        # end of template
+    print(f'Finished operation on {tp_count} templates\n')
     input('Press [Enter] to continue')
 
 def update_lfp():
@@ -480,7 +531,7 @@ def mainmenu():
         print('1. Update zone names')
         print('2. Update Log Forwarding Profile')
         print('3. Check address list')
-        print('4. ')
+        print('4. Update Template Zones')
         print('5. ')
         print('6. ')
         print('7. ')
@@ -491,7 +542,7 @@ def mainmenu():
             if command==1:
                 get_zonefile()
                 get_zones()
-                update_zones()
+                update_dg_zones()
             if command==2:
                 update_lfp()
             if command==3:
@@ -499,7 +550,7 @@ def mainmenu():
                 get_address_set()
                 check_address_alldg()
             if command==4:
-                pass
+                update_template_zones()
             if command==5:
                 pass
             if command==6:
@@ -521,11 +572,14 @@ def main():
     global infile
     global my_xml
     global devicegroups
+    global templates
     get_infile()
     get_xml()
     get_dgs()
+    get_templates()
     mainmenu()
 
 
 if __name__ == "__main__":
     #main()
+    pass
