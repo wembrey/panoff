@@ -36,21 +36,6 @@ colors = {
         'yellow': '\033[93m',
         }
 
-def indent(elem, level=0):
-    i = "\n" + level*"  "
-    if len(elem):
-        if not elem.text or not elem.text.strip():
-            elem.text = i + "  "
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-        for elem in elem:
-            indent(elem, level+1)
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-    else:
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i
-
 def highlight(string, color):
     if not color in colors: return string
     return colors[color] + string + '\033[0m'
@@ -113,7 +98,8 @@ def get_zones():
                 sys.exit()
         print('\nSummary of old to new zone mappings')
         print(f'{oldheader:>30}: - :{newheader:<}')
-        print(f'{oldzone:>30} - {zone_dict[oldzone]:<}')
+        for items in zone_dict:
+            print(f'{items:>30} - {zone_dict[items]:<}')
         command=input('\nIf these are wrong - press q to finish and start again or press [Enter] to continue: ')
         if str.lower(command)=='q':
             sys.exit()
@@ -218,7 +204,7 @@ def get_templates():
 
 def update_dg_zones():
     global error_log
-    global devicegroups # Use devicegroups as a global so that the function can change the XML documen
+    global devicegroups # Use devicegroups as a global so that the function can change the XML document
     global zone_dict
     error_log=''
     dg_count=0
@@ -261,6 +247,77 @@ def update_dg_zones():
                                 if tozone[index].text in zone_dict:
                                     print(f'Found entry tozone {tozone[index].text} that needs updating to {zone_dict[tozone[index].text]} in {rule_name}:{dg_name} ')
                                     tozone[index].text=zone_dict[tozone[index].text]
+                                    update=True
+                            if update==True:
+                                rule_count+=1
+                        rule_name='None'
+                        # end of rule
+                    rule_set_name='None'
+                    # End of rule_set
+                except:
+                    print(f'Unable to find rulebase in {dg_name}\n')
+                    error_log = error_log + '\nFailed to find rulebase for' + dg_name + str(e)
+                    continue
+        except Exception as e:
+            print(f'Failed operation for rule "{rule_name}" for rule set "{rule_set.tag}" in DeviceGroup "{dg_name}" with error\n{e}')
+            error_log = error_log + '\n' + 'Failed operation for rule' + rule_name + ' in rule set ' + rule_set_name + ' in DeviceGroup ' + str(dg_name) + ' with error\n' + str(e)
+        print(f'Device Group {dg_name} finished\n')
+        dg_count +=1
+        dg_name='None'
+        # end of devicegroup
+    print(f'Finished operation on {rule_count} rules over {dg_count} device groups\n')
+    input('Press [Enter] to continue')
+
+def merge_dg_zones():
+    global error_log
+    global devicegroups # Use devicegroups as a global so that the function can change the XML document
+    global zone_dict
+    error_log=''
+    dg_count=0
+    rule_count=0
+    # Update zone names based on entries on supplied zone file
+    for dg in devicegroups:
+        dg_name=dg.items()[0][1]
+        print(f'Starting device group {dg_name}')
+        try:
+            rulebase = dg.find('pre-rulebase')
+            if rulebase==None:
+                print(f'Skipping {dg_name} as no rulebase found')
+                continue
+            else:
+                try:
+                    for rule_set in rulebase:
+                        try:
+                            if not bool(rule_set[0]):
+                                print(f'Skipping rule set {rule_set.tag} in {dg_name} as there are no entries\n')
+                                continue
+                        except Exception as e:
+                            print(f'Rule set parse failed')
+                        rule_set_name=rule_set.tag
+                        for rule in rule_set[0]:
+                            update=False
+                            rule_name = rule.items()[0][1]
+                            try:
+                                fromzone = rule.find('from')
+                            except:
+                                print(f'Unable to map from-zone for rule {rule_name} in {rule_set_name} - {dg_name}')
+                            try:
+                                tozone = rule.find('to')
+                            except:
+                                print(f'Unable to map to-zone for rule {rule_name} in {rule_set_name} - {dg_name}')
+                            #print(f'Device Group: {dg_name} - Rule: {rule_name:>20} - From Zone: {fromzone[0].text} - To Zone: {tozone[0].text}')
+                            #print(f'To Zone: {tozone[0].text:>20}')
+                            for index, item in enumerate(fromzone):
+                                if fromzone[index].text in zone_dict:
+                                    print(f'Found entry fromzone {fromzone[index].text} that needs updating to {zone_dict[fromzone[index].text]} in {rule_name}:{dg_name} ')
+                                    newzone=xt.SubElement(fromzone, 'member')
+                                    newzone.text=zone_dict[fromzone[index].text]
+                                    update=True
+                            for index, item in enumerate(tozone):
+                                if tozone[index].text in zone_dict:
+                                    print(f'Found entry tozone {tozone[index].text} that needs updating to {zone_dict[tozone[index].text]} in {rule_name}:{dg_name} ')
+                                    newzone=xt.SubElement(tozone, 'member')
+                                    newzone.text=zone_dict[tozone[index].text]
                                     update=True
                             if update==True:
                                 rule_count+=1
@@ -532,7 +589,7 @@ def mainmenu():
         print('2. Update Log Forwarding Profile')
         print('3. Check address list')
         print('4. Update Template Zones')
-        print('5. ')
+        print('5. Merge DG Zones with old and new values')
         print('6. ')
         print('7. ')
         print('8. Write changes to outfile')
@@ -550,9 +607,13 @@ def mainmenu():
                 get_address_set()
                 check_address_alldg()
             if command==4:
+                get_zonefile()
+                get_zones()
                 update_template_zones()
             if command==5:
-                pass
+                get_zonefile()
+                get_zones()
+                merge_dg_zones()
             if command==6:
                 pass
             if command==7:
