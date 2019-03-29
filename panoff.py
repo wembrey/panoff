@@ -287,42 +287,47 @@ def merge_dg_zones():
             else:
                 try:
                     for rule_set in rulebase:
-                        try:
-                            if not bool(rule_set[0]):
-                                print(f'Skipping rule set {rule_set.tag} in {dg_name} as there are no entries\n')
-                                continue
-                        except Exception as e:
-                            print(f'Rule set parse failed')
                         rule_set_name=rule_set.tag
-                        for rule in rule_set[0]:
-                            update=False
-                            rule_name = rule.items()[0][1]
+                        print(f'Working on {rule_set_name}')
+                        if rule_set_name=='security':
                             try:
-                                fromzone = rule.find('from')
-                            except:
-                                print(f'Unable to map from-zone for rule {rule_name} in {rule_set_name} - {dg_name}')
-                            try:
-                                tozone = rule.find('to')
-                            except:
-                                print(f'Unable to map to-zone for rule {rule_name} in {rule_set_name} - {dg_name}')
-                            #print(f'Device Group: {dg_name} - Rule: {rule_name:>20} - From Zone: {fromzone[0].text} - To Zone: {tozone[0].text}')
-                            #print(f'To Zone: {tozone[0].text:>20}')
-                            for index, item in enumerate(fromzone):
-                                if fromzone[index].text in zone_dict:
-                                    print(f'Found entry fromzone {fromzone[index].text} that needs updating to {zone_dict[fromzone[index].text]} in {rule_name}:{dg_name} ')
-                                    newzone=xt.SubElement(fromzone, 'member')
-                                    newzone.text=zone_dict[fromzone[index].text]
-                                    update=True
-                            for index, item in enumerate(tozone):
-                                if tozone[index].text in zone_dict:
-                                    print(f'Found entry tozone {tozone[index].text} that needs updating to {zone_dict[tozone[index].text]} in {rule_name}:{dg_name} ')
-                                    newzone=xt.SubElement(tozone, 'member')
-                                    newzone.text=zone_dict[tozone[index].text]
-                                    update=True
-                            if update==True:
-                                rule_count+=1
-                        rule_name='None'
-                        # end of rule
+                                if not bool(rule_set[0]):
+                                    print(f'Skipping rule set {rule_set.tag} in {dg_name} as there are no entries\n')
+                                    continue
+                            except Exception as e:
+                                print(f'Rule set parse failed')
+                            rule_set_name=rule_set.tag
+                            for rule in rule_set[0]:
+                                update=False
+                                rule_name = rule.items()[0][1]
+                                try:
+                                    fromzone = rule.find('from')
+                                except:
+                                    print(f'Unable to map from-zone for rule {rule_name} in {rule_set_name} - {dg_name}')
+                                try:
+                                    tozone = rule.find('to')
+                                except:
+                                    print(f'Unable to map to-zone for rule {rule_name} in {rule_set_name} - {dg_name}')
+                                #print(f'Device Group: {dg_name} - Rule: {rule_name:>20} - From Zone: {fromzone[0].text} - To Zone: {tozone[0].text}')
+                                #print(f'To Zone: {tozone[0].text:>20}')
+                                for index, item in enumerate(fromzone):
+                                    if fromzone[index].text in zone_dict:
+                                        print(f'Found entry fromzone {fromzone[index].text} that needs updating to {zone_dict[fromzone[index].text]} in {rule_name}:{dg_name} ')
+                                        newzone=xt.SubElement(fromzone, 'member')
+                                        newzone.text=zone_dict[fromzone[index].text]
+                                        update=True
+                                for index, item in enumerate(tozone):
+                                    if tozone[index].text in zone_dict:
+                                        print(f'Found entry tozone {tozone[index].text} that needs updating to {zone_dict[tozone[index].text]} in {rule_name}:{dg_name} ')
+                                        newzone=xt.SubElement(tozone, 'member')
+                                        newzone.text=zone_dict[tozone[index].text]
+                                        update=True
+                                if update==True:
+                                    rule_count+=1
+                            rule_name='None'
+                            # end of rule
+                        else:
+                            print(f'Skipping {rule_set_name} as non-security rules')    
                     rule_set_name='None'
                     # End of rule_set
                 except:
